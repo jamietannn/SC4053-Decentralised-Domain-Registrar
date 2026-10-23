@@ -13,8 +13,8 @@ export function MyDomains() {
   if (!account)
     return (
       <div className="stack">
-        <h1>My domains & primary name</h1>
-        <Notice>Connect your wallet to see the names you own.</Notice>
+        <h1>My domains & primary domain</h1>
+        <Notice>Connect your wallet to see the domains you own.</Notice>
       </div>
     );
   return <DomainsTable account={account} />;
@@ -29,24 +29,24 @@ function DomainsTable({ account }: { account: string }) {
 
   const setPrimary = async (domain: string) => {
     setBusy(domain);
-    const result = await run(`Set primary name (${fqdn(domain)})`, (r) => r.setPrimaryName(domain));
+    const result = await run(`Set primary domain (${fqdn(domain)})`, (r) => r.setPrimaryName(domain));
     setBusy(null);
     if (result) names.reload();
   };
 
   return (
     <div className="stack">
-      <h1>My domains & primary name</h1>
+      <h1>My domains & primary domain</h1>
       <p className="muted">
-        Each name resolves to its owner's address. Your primary name is what others see when they look up your address.
+        Each domain resolves to its owner's address. Your primary domain is what others see when they look up your address.
       </p>
       <Card>
-        {names.error != null && !names.data && <Notice tone="error">Couldn't load your names.</Notice>}
+        {names.error != null && !names.data && <Notice tone="error">Couldn't load your domains.</Notice>}
         {!names.data ? (
           <Loading />
         ) : names.data.length === 0 ? (
           <p className="muted">
-            You don't own any names yet. <Link to="/search">Search for one</Link>. Auctions you are bidding in are listed on the{" "}
+            You don't own any domains yet. <Link to="/search">Search for one</Link>. Auctions you are bidding in are listed on the{" "}
             <Link to="/">dashboard</Link>.
           </p>
         ) : (
@@ -54,7 +54,7 @@ function DomainsTable({ account }: { account: string }) {
             <table>
               <thead>
                 <tr>
-                  <th>Domain name</th>
+                  <th>Domain</th>
                   <th>Status</th>
                   <th>Resolved address</th>
                   <th>Winning bid</th>

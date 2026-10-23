@@ -28,7 +28,7 @@ export function Layout({ children }: { children: ReactNode }) {
       )}
       <aside className="sidebar">
         <div className="brand">
-          <span aria-hidden>✦</span> NTU Names
+          <span aria-hidden>✦</span> NTU Domains
         </div>
         <nav>
           {NAV.map((n) => (
@@ -64,7 +64,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
         {!configured && (
           <div className="banner banner-error">
-            No NtuNames contract is configured for chain {CHAIN_ID}. Deploy it (see DEVELOPMENT.md) or set VITE_CONTRACT_ADDRESS.
+            No NTU Domains contract is configured for chain {CHAIN_ID}. Deploy it (see DEVELOPMENT.md) or set VITE_CONTRACT_ADDRESS.
           </div>
         )}
         {configured && !rpcOk && (

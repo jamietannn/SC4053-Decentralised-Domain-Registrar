@@ -241,7 +241,7 @@ export function createChainRegistry(): Registry {
       for (const e of withdrawn)
         items.push({ key: `${e.transactionHash}-refund`, label: `Deposit refunded (${await labelFor(e.args.auctionId)})`, txHash: e.transactionHash, blockNumber: e.blockNumber, amountWei: e.args.amount });
       for (const e of primary)
-        items.push({ key: `${e.transactionHash}-primary`, label: `Primary name set to ${fqdn(e.args.domain)}`, txHash: e.transactionHash, blockNumber: e.blockNumber });
+        items.push({ key: `${e.transactionHash}-primary`, label: `Primary domain set to ${fqdn(e.args.domain)}`, txHash: e.transactionHash, blockNumber: e.blockNumber });
 
       const withTimes = await Promise.all(items.map(async (i) => ({ ...i, timestamp: await blockTime(i.blockNumber) })));
       return withTimes.sort((a, b) => b.blockNumber - a.blockNumber);

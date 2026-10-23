@@ -23,6 +23,15 @@ export async function fetchSgdRate(fetchFn: typeof fetch = fetch): Promise<SgdRa
   return { sgdPerEth: sgd, updatedAt };
 }
 
+export type SgdHint = { unavailable: false; estimate: string; rateTime: number } | { unavailable: true };
+
+/** What an ETH input shows under it (SPEC §7): an estimate with the rate's time, or "unavailable". Null wei shows nothing. */
+export function sgdHint(rate: SgdRate | null, wei: bigint | null, nowSeconds: number): SgdHint | null {
+  if (wei === null) return null;
+  const estimate = sgdEstimate(rate, wei, nowSeconds);
+  return estimate && rate ? { unavailable: false, estimate, rateTime: rate.updatedAt } : { unavailable: true };
+}
+
 /** "≈ 1,555.68 SGD" or null when there is no fresh rate. */
 export function sgdEstimate(rate: SgdRate | null, wei: bigint, nowSeconds: number): string | null {
   if (!isRateFresh(rate, nowSeconds)) return null;

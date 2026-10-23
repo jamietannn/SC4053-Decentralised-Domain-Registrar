@@ -18,7 +18,7 @@ export function isValidDomain(domain: string): boolean {
 
 export function checkDomain(input: string): DomainCheck {
   const domain = normalizeDomainInput(input);
-  if (domain.length === 0) return { ok: false, domain, error: "Enter a domain name." };
+  if (domain.length === 0) return { ok: false, domain, error: "Enter a domain." };
   if (!/^[a-z0-9]+$/.test(domain))
     return { ok: false, domain, error: "Only lowercase letters a–z and digits 0–9 are allowed (no hyphens or dots)." };
   if (domain.length < 3) return { ok: false, domain, error: "Domain must be at least 3 characters." };

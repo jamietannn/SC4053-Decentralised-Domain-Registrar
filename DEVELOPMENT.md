@@ -40,7 +40,7 @@ How the frontend finds the contract:
 - The repository ships `frontend/src/generated/deployments.json` as an empty `{}` placeholder. Each developer deploys their own copy, and no shared address is committed.
 - `npm run deploy:local` (or `deploy:sepolia`) writes `{ "<chainId>": { "address", "deployBlock" } }` into that file. The app picks the entry for `VITE_CHAIN_ID`.
 - Setting `VITE_CONTRACT_ADDRESS` (and optionally `VITE_DEPLOY_BLOCK`) in `frontend/.env` overrides that file. Use it to point at an existing deployment without redeploying.
-- With no address for the target chain, the app shows a "No NtuNames contract is configured" banner, lookups are skipped, and every transaction button is disabled.
+- With no address for the target chain, the app shows a "No NTU Domains contract is configured" banner, lookups are skipped, and every transaction button is disabled.
 - After deploying locally, don't commit the address that `deploy:local` wrote. Restore the placeholder before committing with `git checkout -- frontend/src/generated/deployments.json`.
 
 Terminal 3 — web app at http://localhost:5173:
@@ -70,7 +70,7 @@ Then, in `frontend/.env`, set `VITE_CHAIN_ID=11155111` and `VITE_RPC_URL=<your S
 
 ```bash
 cd frontend
-npm test            # unit tests: commitment vectors (AC51), domain rules, SGD freshness (AC55), recipient (AC56), commit gating (AC53)
+npm test            # unit tests: commitment vectors (AC51), domain rules, SGD freshness and hints (AC55, AC59, AC60), recipient (AC56), commit gating (AC53), address lookup input (AC63)
 npm run build       # type-check + production build
 ```
 

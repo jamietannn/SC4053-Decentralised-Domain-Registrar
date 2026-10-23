@@ -11,7 +11,7 @@ export async function resolveRecipient(
   resolve: (domain: string) => Promise<string | null>,
 ): Promise<RecipientResult> {
   const value = input.trim();
-  if (value.length === 0) return { ok: false, error: "Enter a .ntu name or an address." };
+  if (value.length === 0) return { ok: false, error: "Enter a .ntu domain or an address." };
   if (/^0x/i.test(value)) {
     if (!isAddress(value)) return { ok: false, error: "That is not a valid Ethereum address." };
     return { ok: true, recipient: { kind: "address", address: getAddress(value) } };

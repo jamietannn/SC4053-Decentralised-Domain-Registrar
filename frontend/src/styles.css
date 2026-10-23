@@ -116,6 +116,11 @@ a { color: var(--primary); }
 }
 .field input:focus, .search-form input:focus { outline: 2px solid var(--pale); border-color: var(--primary); }
 .search-form { display: flex; gap: 10px; width: 100%; max-width: 620px; }
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; align-self: flex-start; }
+.segmented button { border: none; background: var(--surface); color: var(--primary); padding: 8px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+.segmented button + button { border-left: 1px solid var(--border); }
+.segmented button.active { background: var(--primary); color: #fff; }
+.segmented button:not(.active):hover { background: var(--pale); }
 .input-suffix { display: flex; align-items: center; flex: 1; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
 .input-suffix input { border: none !important; outline: none !important; }
 .input-suffix span { padding: 0 12px; color: var(--muted); font-weight: 600; }

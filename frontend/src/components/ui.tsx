@@ -1,8 +1,10 @@
 import { ReactNode, useState } from "react";
 import { EXPLORER_TX_URL } from "../config";
-import { formatCountdown, shortHash } from "../lib/format";
+import { formatCountdown, formatDateTime, shortHash } from "../lib/format";
+import { sgdHint } from "../lib/sgd";
 import { Phase, PHASE_LABEL } from "../lib/types";
 import { useNow } from "../state/hooks";
+import { useSgdRate } from "../state/sgdRate";
 
 const PHASE_TONE: Record<Phase, string> = {
   [Phase.None]: "neutral",
@@ -100,6 +102,18 @@ export function DetailList({ rows }: { rows: Array<[ReactNode, ReactNode]> }) {
         </div>
       ))}
     </dl>
+  );
+}
+
+/** Indicative SGD value for an ETH input (SPEC §7). Never changes the ETH amount sent. */
+export function SgdHint({ wei }: { wei: bigint | null }) {
+  const hint = sgdHint(useSgdRate(), wei, useNow());
+  if (!hint) return null;
+  if (hint.unavailable) return <p className="hint">SGD estimate unavailable</p>;
+  return (
+    <p className="hint">
+      {hint.estimate} estimate (indicative only) · rate from CoinGecko at {formatDateTime(hint.rateTime)}
+    </p>
   );
 }
 

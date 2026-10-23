@@ -11,6 +11,8 @@ These cover the frontend acceptance criteria in SPEC.md §8 that need a real bro
 | M5 | AC56 unregistered recipient | On Send ETH, enter `nobodyxyz.ntu` and an amount, then **Proceed**. | "nobodyxyz.ntu is not registered." The review step is not shown. |
 | M6 | AC57 demo mode | Open `/?demo=1` and visit every page. | The orange "DEMO DATA – not on-chain" banner is always visible, and no transaction button can be used. `?demo=0` exits. |
 | M7 | AC58 RPC failure | Stop the Hardhat node (or point `VITE_RPC_URL` at a dead URL) with the app open. | Within about 15 s, a "Network unavailable" banner appears and transaction buttons are disabled. Restarting the node clears it. |
+| M9 | AC59, AC60 SGD on every ETH input | Type an amount into Commit bid, Reveal bid and Send ETH amount. Then block api.coingecko.com and reload. | Normal: each field shows "≈ … SGD estimate (indicative only)" plus the rate time. Blocked: each field shows "SGD estimate unavailable". |
+| M10 | AC61–AC63 Search by address | Search → **By address**. Enter a winner's address, then a fresh account's address, then `0x1234` and a mixed-case address with one letter's case flipped. | Winner: its primary domain, e.g. `demo1.ntu`. Fresh account: "This address has no primary .ntu domain." Invalid inputs: a validation error, and no request in the Network tab. |
 | M8 | Wallet safety | Go through connect and all flows. | The app never asks for a seed phrase or private key. |
 
 ## End-to-end demo run (all three accounts)

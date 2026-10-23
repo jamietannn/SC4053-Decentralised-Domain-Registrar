@@ -18,19 +18,19 @@ function Landing() {
   return (
     <div className="landing">
       <h1>Own your identity on-chain.</h1>
-      <p className="lead">Register, manage and resolve .ntu names using a compatible Ethereum wallet.</p>
-      <Notice tone="warn">Never enter your seed phrase or private key. NTU Names will never ask for them.</Notice>
+      <p className="lead">Register, manage and resolve .ntu domains using a compatible Ethereum wallet.</p>
+      <Notice tone="warn">Never enter your seed phrase or private key. NTU Domains will never ask for them.</Notice>
       <div className="row">
         <button className="btn btn-primary btn-large" onClick={wallet.connect} disabled={wallet.connecting}>
           {wallet.connecting ? "Connecting…" : "Connect MetaMask"}
         </button>
         <Link className="btn btn-ghost btn-large" to="/search">
-          Search names without connecting
+          Search domains without connecting
         </Link>
       </div>
       {!wallet.available && (
         <p className="muted">
-          MetaMask was not detected in this browser. You can still search and resolve names, or{" "}
+          MetaMask was not detected in this browser. You can still search and resolve domains, or{" "}
           <a href="?demo=1">browse the demo</a>.
         </p>
       )}
@@ -76,14 +76,14 @@ function Dashboard({ account }: { account: string }) {
             </ul>
           ) : (
             <p className="muted">
-              You don't own any names yet. <Link to="/search">Search for one</Link>.
+              You don't own any domains yet. <Link to="/search">Search for one</Link>.
             </p>
           )}
         </Card>
         <Card title="Quick actions">
           <div className="stack-tight">
             <Link className="btn btn-primary" to="/search">Search domains</Link>
-            <Link className="btn btn-ghost" to="/send">Send ETH to a .ntu name</Link>
+            <Link className="btn btn-ghost" to="/send">Send ETH to a .ntu domain</Link>
             <Link className="btn btn-ghost" to="/history">Transaction history</Link>
           </div>
         </Card>

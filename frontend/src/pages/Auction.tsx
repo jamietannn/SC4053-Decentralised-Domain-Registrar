@@ -1,13 +1,12 @@
 import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { Card, CopyButton, Countdown, DetailList, Loading, Notice, PhaseBadge, TxLink } from "../components/ui";
+import { Card, CopyButton, Countdown, DetailList, Loading, Notice, PhaseBadge, SgdHint, TxLink } from "../components/ui";
 import { commitBlocker } from "../lib/commitGate";
 import { computeCommitment, generateSalt, parseSalt } from "../lib/commitment";
 import { checkDomain, fqdn, isValidDomain, nameHash } from "../lib/domain";
 import { formatDateTime, formatEth, parseEthInput, shortAddress, shortHash } from "../lib/format";
 import { knownDomain, rememberDomain } from "../lib/labels";
 import { phaseDeadline, settlementWindow } from "../lib/phase";
-import { fetchSgdRate, sgdEstimate } from "../lib/sgd";
 import { AuctionInfo, BidInfo, INELIGIBILITY_LABEL, Ineligibility, Phase, RankInfo, RegistryConfig } from "../lib/types";
 import { useAsync, useNow } from "../state/hooks";
 import { useRegistry } from "../state/registry";
@@ -77,7 +76,7 @@ function AuctionView({ id }: { id: bigint }) {
     (hinted && isValidDomain(hinted) && nameHash(hinted) === auction.nameHash ? hinted : null) ||
     typedDomain ||
     knownDomain(auction.nameHash);
-  const title = domain ? fqdn(domain) : `Auction #${id} (name not yet revealed)`;
+  const title = domain ? fqdn(domain) : `Auction #${id} (domain not yet revealed)`;
 
   const done = (c: Confirmation) => {
     setConfirmation(c);
@@ -126,7 +125,7 @@ function AuctionSummary({ data, deadline }: { data: PageData; deadline: number |
     <Card>
       <DetailList
         rows={[
-          ["Auction", `#${auction.id} · name hash ${shortHash(auction.nameHash)}`],
+          ["Auction", `#${auction.id} · domain hash ${shortHash(auction.nameHash)}`],
           ...(deadline ? ([["Time left in phase", <Countdown to={deadline} />]] as Array<[ReactNode, ReactNode]>) : []),
           ["Commit deadline", formatDateTime(auction.commitDeadline)],
           ["Reveal deadline", formatDateTime(auction.revealDeadline)],
@@ -194,16 +193,16 @@ function DomainPrompt({ nameHashValue, onDomain }: { nameHashValue: string; onDo
     e.preventDefault();
     const check = checkDomain(input);
     if (!check.ok) return setError(check.error);
-    if (nameHash(check.domain) !== nameHashValue) return setError(`${fqdn(check.domain)} is not the name this auction is for.`);
+    if (nameHash(check.domain) !== nameHashValue) return setError(`${fqdn(check.domain)} is not the domain this auction is for.`);
     rememberDomain(check.domain);
     onDomain(check.domain);
   };
   return (
-    <Card title="Which name is this auction for?">
-      <p className="muted">Only the name's hash is on-chain until bids are revealed. Enter the name to bid on it.</p>
+    <Card title="Which domain is this auction for?">
+      <p className="muted">Only the domain's hash is on-chain until bids are revealed. Enter the domain to bid on it.</p>
       <form className="search-form" onSubmit={submit}>
         <div className="input-suffix">
-          <input aria-label="Domain name" value={input} onChange={(e) => setInput(e.target.value)} />
+          <input aria-label="Domain" value={input} onChange={(e) => setInput(e.target.value)} />
           <span>.ntu</span>
         </div>
         <button className="btn btn-primary">Continue</button>
@@ -219,15 +218,12 @@ function CommitPanel({ data, domain, onDone }: PanelProps & { domain: string }) 
   const { cfg, auction } = data;
   const { canTransact } = useWallet();
   const { run } = useTx();
-  const now = useNow();
-  const rate = useAsync(() => fetchSgdRate(), [], 60_000);
   const [bidInput, setBidInput] = useState("");
   const [salt, setSalt] = useState<string | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const bidWei = parseEthInput(bidInput);
-  const estimate = bidWei !== null ? sgdEstimate(rate.data ?? null, bidWei, now) : null;
   const blocker = commitBlocker({
     canTransact,
     inCommitPhase: auction.phase === Phase.Commit,
@@ -283,12 +279,7 @@ function CommitPanel({ data, domain, onDone }: PanelProps & { domain: string }) 
           }}
         />
       </label>
-      <p className="hint">
-        {bidWei === null
-          ? bidInput && "Enter a valid ETH amount."
-          : (estimate ?? "SGD estimate unavailable") + (estimate ? " estimate (indicative only)" : "")}
-        {estimate && rate.data && <> · rate from CoinGecko at {formatDateTime(rate.data.updatedAt)}</>}
-      </p>
+      {bidWei === null ? bidInput && <p className="hint">Enter a valid ETH amount.</p> : <SgdHint wei={bidWei} />}
       {bidWei !== null && bidWei < cfg.minBid && (
         <Notice tone="warn">
           Bids below the {formatEth(cfg.minBid)} minimum cannot win. Your deposit would be refundable after you reveal.
@@ -322,7 +313,7 @@ function CommitPanel({ data, domain, onDone }: PanelProps & { domain: string }) 
         )}
       </div>
       <Notice tone="warn">
-        Never lose the salt: the reveal step must use the exact committed domain, bid and salt. NTU Names does not store it.
+        Never lose the salt: the reveal step must use the exact committed domain, bid and salt. NTU Domains does not store it.
         If you don't reveal, your deposit is forfeited.
       </Notice>
       <label className="checkbox">
@@ -406,6 +397,7 @@ function RevealPanel({ data, domain, bid, onDone }: PanelProps & { bid: BidInfo 
           <span>Bid amount (ETH)</span>
           <input inputMode="decimal" value={bidInput} onChange={(e) => setBidInput(e.target.value)} />
         </label>
+        <SgdHint wei={bidWei} />
         <label className="field">
           <span>Saved salt</span>
           <input className="mono" value={saltInput} onChange={(e) => setSaltInput(e.target.value)} placeholder="0x…" />
@@ -482,7 +474,7 @@ function SettlementPanel({ data, account, domain, onDone, committed }: PanelProp
         ["Paid now (price − deposit)", formatEth(due)],
         ["Timestamp", formatDateTime(result.timestamp)],
       ],
-      note: <p>The name is now registered to you and resolves to your address.</p>,
+      note: <p>The domain is now registered to you and resolves to your address.</p>,
     });
   };
 
@@ -554,11 +546,11 @@ function OutcomePanel({ data, account, domain, onDone, reload, committed }: Pane
     <Card title="Auction results & settlement">
       {auction.phase === Phase.Settled ? (
         <p>
-          {domain ? fqdn(domain) : "This name"} was registered to <span className="mono">{shortAddress(auction.winner)}</span> for{" "}
+          {domain ? fqdn(domain) : "This domain"} was registered to <span className="mono">{shortAddress(auction.winner)}</span> for{" "}
           {formatEth(auction.winningBid)}.
         </p>
       ) : (
-        <p>This auction closed without a winner. The name is available for a new auction.</p>
+        <p>This auction closed without a winner. The domain is available for a new auction.</p>
       )}
       {mine}
       {auction.phase === Phase.Closed && (

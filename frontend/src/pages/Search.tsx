@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Badge, Card, Countdown, DetailList, Loading, Notice, PhaseBadge } from "../components/ui";
+import { checkAddress } from "../lib/address";
 import { checkDomain, fqdn } from "../lib/domain";
 import { formatEth } from "../lib/format";
 import { rememberDomain } from "../lib/labels";
@@ -11,43 +12,113 @@ import { useRegistry } from "../state/registry";
 import { useTx } from "../state/tx";
 import { useWallet } from "../state/wallet";
 
+type SearchMode = "domain" | "address";
+
 export function Search() {
   const [params, setParams] = useSearchParams();
+  const mode: SearchMode = params.get("by") === "address" ? "address" : "domain";
   const query = params.get("q") ?? "";
   const [input, setInput] = useState(query);
   useEffect(() => setInput(query), [query]);
-  const check = query ? checkDomain(query) : null;
+
+  const setMode = (next: SearchMode) => {
+    if (next !== mode) setParams(next === "address" ? { by: "address" } : {});
+  };
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    const normalized = checkDomain(input).domain;
-    setParams(normalized ? { q: normalized } : {});
+    const value = mode === "domain" ? checkDomain(input).domain : input.trim();
+    setParams({ ...(mode === "address" ? { by: "address" } : {}), ...(value ? { q: value } : {}) });
   };
 
   return (
     <div className="stack">
       <h1>Search .ntu domains</h1>
-      <p className="muted">Search a name to check availability or current auction state.</p>
+      <p className="muted">
+        {mode === "domain"
+          ? "Search a domain to check availability or current auction state."
+          : "Look up an Ethereum address to find its primary .ntu domain."}
+      </p>
+      <div className="segmented" role="group" aria-label="Search by">
+        <button type="button" className={mode === "domain" ? "active" : ""} aria-pressed={mode === "domain"} onClick={() => setMode("domain")}>
+          By domain
+        </button>
+        <button type="button" className={mode === "address" ? "active" : ""} aria-pressed={mode === "address"} onClick={() => setMode("address")}>
+          By address
+        </button>
+      </div>
       <form className="search-form" onSubmit={submit}>
-        <div className="input-suffix">
-          <input aria-label="Domain name" placeholder="e.g. alice" value={input} onChange={(e) => setInput(e.target.value)} autoFocus />
-          <span>.ntu</span>
-        </div>
+        {mode === "domain" ? (
+          <div className="input-suffix">
+            <input aria-label="Domain" placeholder="e.g. alice" value={input} onChange={(e) => setInput(e.target.value)} autoFocus />
+            <span>.ntu</span>
+          </div>
+        ) : (
+          <div className="input-suffix">
+            <input aria-label="Ethereum address" className="mono" placeholder="0x…" value={input} onChange={(e) => setInput(e.target.value)} autoFocus />
+          </div>
+        )}
         <button className="btn btn-primary" type="submit">
           Search
         </button>
       </form>
-      <p className="hint">3–32 characters: lowercase letters a–z and digits 0–9.</p>
-      {check && !check.ok && <Notice tone="error">{check.error}</Notice>}
-      {check?.ok && <SearchResult domain={check.domain} />}
+      <p className="hint">
+        {mode === "domain" ? "3–32 characters: lowercase letters a–z and digits 0–9." : "0x followed by 40 hexadecimal characters."}
+      </p>
+      {query && (mode === "domain" ? <DomainQuery query={query} /> : <AddressQuery query={query} />)}
     </div>
+  );
+}
+
+function DomainQuery({ query }: { query: string }) {
+  const check = checkDomain(query);
+  if (!check.ok) return <Notice tone="error">{check.error}</Notice>;
+  return <SearchResult domain={check.domain} />;
+}
+
+// ---------------------------------------------------------------- reverse lookup (address → primary name)
+
+function AddressQuery({ query }: { query: string }) {
+  const { configured } = useRegistry();
+  const check = checkAddress(query);
+  if (!check.ok) return <Notice tone="error">{check.error}</Notice>;
+  if (!configured)
+    return <Notice tone="error">Addresses can't be looked up because no NTU Domains contract is configured for this network.</Notice>;
+  return <AddressResult address={check.address} />;
+}
+
+function AddressResult({ address }: { address: string }) {
+  const { registry } = useRegistry();
+  const primary = useAsync(() => registry.reverseResolve(address), [registry, address]);
+
+  if (primary.error != null && primary.data === undefined)
+    return <Notice tone="error">Couldn't look up this address. Is the network reachable?</Notice>;
+  if (primary.data === undefined) return <Loading what="Looking up" />;
+  return (
+    <Card title="Address lookup">
+      <DetailList
+        rows={[
+          ["Address", <span className="mono break">{address}</span>],
+          [
+            "Primary domain",
+            primary.data ? (
+              <>
+                <strong>{fqdn(primary.data)}</strong> <Badge tone="blue">Primary</Badge>
+              </>
+            ) : (
+              <span className="muted">This address has no primary .ntu domain.</span>
+            ),
+          ],
+        ]}
+      />
+    </Card>
   );
 }
 
 function SearchResult({ domain }: { domain: string }) {
   const { configured } = useRegistry();
   if (!configured)
-    return <Notice tone="error">Names can't be looked up because no NtuNames contract is configured for this network.</Notice>;
+    return <Notice tone="error">Domains can't be looked up because no NTU Domains contract is configured for this network.</Notice>;
   return <ConfiguredSearchResult domain={domain} />;
 }
 
@@ -56,7 +127,7 @@ function ConfiguredSearchResult({ domain }: { domain: string }) {
   useEffect(() => rememberDomain(domain), [domain]);
   const lookup = useAsync(() => registry.lookup(domain), [registry, domain], 10_000);
 
-  if (lookup.error != null && !lookup.data) return <Notice tone="error">Couldn't load this name. Is the network reachable?</Notice>;
+  if (lookup.error != null && !lookup.data) return <Notice tone="error">Couldn't load this domain. Is the network reachable?</Notice>;
   if (!lookup.data) return <Loading what="Looking up" />;
   return <ResultCard info={lookup.data} reload={lookup.reload} />;
 }
@@ -108,12 +179,12 @@ function ResultCard({ info, reload }: { info: DomainLookup; reload: () => void }
     <Card title={fqdn(domain)} actions={<Badge tone="green">Available</Badge>}>
       {closedPrevious && (
         <Notice>
-          A previous auction (#{closedPrevious.id.toString()}) for this name closed without a winner. Starting a new auction
+          A previous auction (#{closedPrevious.id.toString()}) for this domain closed without a winner. Starting a new auction
           finalises it automatically. <Link to={`/auction/${closedPrevious.id}?d=${domain}`}>View it</Link>
         </Notice>
       )}
       <p>
-        This name is available. Anyone can start a blind auction for it; only the name's hash goes on-chain until bids are
+        This domain is available. Anyone can start a blind auction for it; only the domain's hash goes on-chain until bids are
         revealed.
       </p>
       {cfg.data && (

@@ -1,6 +1,6 @@
 import { FormEvent, ReactNode, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Card, DetailList, Notice, TxLink } from "../components/ui";
+import { Card, DetailList, Notice, SgdHint, TxLink } from "../components/ui";
 import { NETWORK_NAME } from "../config";
 import { fqdn } from "../lib/domain";
 import { formatDateTime, formatEth, parseEthInput } from "../lib/format";
@@ -36,7 +36,7 @@ export function SendEth() {
       if (!result.ok) return setError(result.error);
       setStep({ kind: "review", recipient: result.recipient, amount });
     } catch {
-      setError("Couldn't resolve the name. Is the network reachable?");
+      setError("Couldn't resolve the domain. Is the network reachable?");
     } finally {
       setBusy(false);
     }
@@ -97,18 +97,19 @@ export function SendEth() {
 
   return (
     <div className="stack">
-      <h1>Send ETH to a .ntu name</h1>
-      <p className="muted">Send ETH to a registered name or a direct address.</p>
+      <h1>Send ETH to a .ntu domain</h1>
+      <p className="muted">Send ETH to a registered domain or a direct address.</p>
       <Card>
         <form className="stack-tight" onSubmit={proceed}>
           <label className="field">
-            <span>Recipient name or address</span>
+            <span>Recipient domain or address</span>
             <input placeholder="e.g. javier.ntu or 0x1234…" value={to} onChange={(e) => setTo(e.target.value)} />
           </label>
           <label className="field">
             <span>Amount (ETH)</span>
             <input inputMode="decimal" placeholder="0.01" value={amountInput} onChange={(e) => setAmountInput(e.target.value)} />
           </label>
+          <SgdHint wei={parseEthInput(amountInput)} />
           {error && <Notice tone="error">{error}</Notice>}
           <button className="btn btn-primary" disabled={busy}>
             {busy ? "Resolving…" : "Proceed"}
