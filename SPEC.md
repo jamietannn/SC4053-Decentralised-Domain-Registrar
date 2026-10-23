@@ -1,9 +1,9 @@
 # NTU Names — Specification
 
 ## Context
-[README.md](./README.md) and [INITIAL_SPECIFICATION.md](./INITIAL_SPECIFICATION.md) describe a `.ntu` registrar on an Ethereum testnet using a commit–reveal blind auction, but leave the business rules open (auction start, penalties, settlement fallback, tie-break, timings, amounts, salt handling, etc.). This specification resolves those points through a requirements interview with the project owner. Source tags `[Rn]` refer to interview round *n* (R1–R13, listed at the end). Items marked **⚑ REC** are technical recommendations adopted in this spec that were not individually chosen in the interview (see the list near the end).
+[README.md](./README.md) and [INITIAL_SPECIFICATION.md](./INITIAL_SPECIFICATION.md) describe a `.ntu` registrar on an Ethereum testnet using a commit–reveal blind auction, but leave the business rules open (auction start, penalties, settlement fallback, tie-break, timings, amounts, salt handling, etc.). This specification resolves those points through a requirements interview with the project owner. Source tags `[Rn]` refer to interview round *n* (R1–R14, listed at the end). Items marked **⚑ REC** are technical recommendations adopted in this spec that were not individually chosen in the interview (see the list near the end).
 
-Where this document conflicts with README.md or INITIAL_SPECIFICATION.md, this document takes precedence (see §10). No implementation exists yet.
+Where this document conflicts with README.md or INITIAL_SPECIFICATION.md, this document takes precedence (see §10). The implementation is described in [DEVELOPMENT.md](./DEVELOPMENT.md).
 
 Terminology: **domain** = the label being registered (e.g. `alice` for `alice.ntu`). **nameHash** = `keccak256(bytes(domain))`.
 
@@ -116,7 +116,7 @@ Phase is derived in this order:
 ### State-changing functions
 | Function | Access | Preconditions (revert error) | Effects / returns | Events |
 |---|---|---|---|---|
-| `startAuction(bytes32 nameHash) → uint256 auctionId` | anyone | `nameHash≠0` (`ZeroHash`); not registered (`NameRegistered`); no live auction (`AuctionActive`) | auto-finalise a stale Closed auction; ids start at 1; `commitDeadline = now+C`, `revealDeadline = commitDeadline+R` | `AuctionStarted(id, nameHash, starter, commitDeadline, revealDeadline)` |
+| `startAuction(bytes32 nameHash) → uint256 auctionId` | anyone | `nameHash≠0` (`ZeroHash`); not registered (`NameAlreadyRegistered`); no live auction (`AuctionActive`) | auto-finalise a stale Closed auction; ids start at 1; `commitDeadline = now+C`, `revealDeadline = commitDeadline+R` | `AuctionStarted(id, nameHash, starter, commitDeadline, revealDeadline)` |
 | `commitBid(uint256 auctionId, bytes32 commitment)` payable | anyone | phase Commit (`NotInCommitPhase`); `msg.value==deposit` (`WrongDeposit`); `commitment≠0` (`ZeroCommitment`); no prior commit by sender (`AlreadyCommitted`); commitment unused (`CommitmentUsed`) | store bid with `commitIndex`; mark the commitment used | `BidCommitted(id, bidder, commitment, commitIndex)` |
 | `revealBid(uint256 auctionId, string domain, uint256 bid, bytes32 salt)` | committed bidder | phase Reveal (`NotInRevealPhase`); has commit (`NoCommitment`); not revealed (`AlreadyRevealed`); hash matches (`CommitmentMismatch`) | record bid, eligibility, reason; eligible → append to the eligible list and store the domain string | `BidRevealed(id, bidder, domain, bid, eligible, reason)` |
 | `payWinningBid(uint256 auctionId)` payable | current offeree | phase Settlement (`NotInSettlement`); caller eligible (`NotEligible`); caller rank == current window index (`NotYourTurn`); `msg.value == bid−deposit` (`WrongPayment`) | settle, register, resolve, append to list, auto-primary, accrue treasury, finalised | `NameRegistered(nameHash, domain, owner, id, price)`, `AuctionSettled(id, winner, price, rank)`, optional `PrimaryNameSet(owner, domain)` |
@@ -174,20 +174,23 @@ Boundaries are half-open [R6]. At `now == commitDeadline` a commit reverts and a
 
 - **Wallet:** MetaMask connect (template slides 4–6). Shows the account and network, and never asks for keys. On the wrong chain, transaction buttons are disabled and a "Switch to Sepolia" button calls `wallet_switchEthereumChain` (chain 11155111, or 31337 locally) [R9].
 - **Read-only without wallet:** search and resolve work through the configured RPC [R10].
-- **Search** (exact match only) [R8]: normalise and validate, then compute nameHash. It shows one of:
-  - Invalid (with the rule)
-  - Available (Start auction)
-  - In auction (phase, deadlines, countdown; Commit / Reveal / Pay / Finalise shown only when the contract state allows)
-  - Registered (owner and resolved address)
+- **Search** has a **By domain | By address** toggle. The mode is kept in the URL (`?by=address&q=0x…`), and switching mode clears the query [R14].
+  - **By domain** (exact match only) [R8]: normalise and validate, then compute nameHash. It shows one of:
+    - Invalid (with the rule)
+    - Available (Start auction)
+    - In auction (phase, deadlines, countdown; Commit / Reveal / Pay / Finalise shown only when the contract state allows)
+    - Registered (owner and resolved address)
+  - **By address** (reverse resolution) [R14]: the input must be `0x` followed by 40 hex characters, and a mixed-case address must have a valid checksum. Otherwise a validation error is shown and no RPC call is made. A valid address is looked up with `reverseResolve` and shows the checksummed address and its primary domain (e.g. `alice.ntu`, with a Primary badge), or "This address has no primary .ntu domain." It works read-only, without a wallet.
 - **Dashboard** (slide 7): the user's names (`namesOf`) and auctions they bid in (from `BidCommitted` events filtered by bidder), grouped by phase with countdowns. Countdowns are a display aid only, and the contract is authoritative.
 - **Commit** (slides 14–17):
   1. Enter the bid in ETH. Client-side check: bid ≥ 0.005, or show a warning that it would be ineligible.
-  2. Show the SGD estimate from CoinGecko with the rate's timestamp. If the fetch fails or the rate is older than 10 minutes, show "SGD estimate unavailable" [R8].
+  2. Show the SGD estimate (see **SGD estimates** below) [R8].
   3. Generate the salt and display domain, bid, and salt with copy buttons.
   4. A mandatory "I have saved my domain, bid and salt" checkbox unlocks submission.
   5. Submit with the exact deposit.
 
   The salt is not stored anywhere by the app [R7]. A warning explains that losing the salt or not revealing forfeits the deposit.
+- **SGD estimates** [R8, R14]: every ETH input field (Commit bid, Reveal bid, Send ETH amount) shows "≈ X SGD estimate (indicative only) · rate from CoinGecko at <time>" while the user types. The rate is one app-wide CoinGecko fetch, refreshed every 60 s and shared by all fields. If the fetch fails or the rate is older than 10 minutes, the field shows "SGD estimate unavailable". The estimate is display-only and never changes the ETH amount sent.
 - **Reveal** (slide 18): the user types the domain, bid, and salt. Before sending, the frontend recomputes the commitment and compares it with `getBid().commitment`. On a mismatch it shows "Details don't match your commitment" and sends nothing. It also warns if the reveal will be ineligible.
 - **Result / Pay** (slides 19–20): shows rank, amount due, and the offer window. "Pay" is enabled only when `currentOfferee == me`, then a confirmation is shown.
 - **Loser / Withdraw** (slides 21–22): explains when the deposit becomes available. "Withdraw deposit" is enabled only when `canWithdraw` is true.
@@ -209,7 +212,7 @@ Defaults: C = R = S = 180 s, D = minBid = 0.005 ETH, and `h = keccak256("alice")
 
 3. Given `h` is unregistered with no auction, when anyone calls `startAuction(h)`, then auction 1 has `commitDeadline = t+180` and `revealDeadline = t+360`, `AuctionStarted` is emitted, and the phase is Commit.
 4. Given a live auction for `h` (Commit, Reveal, or Settlement), when `startAuction(h)` is called, then it reverts `AuctionActive`.
-5. Given `h` is registered, when `startAuction(h)` is called, then it reverts `NameRegistered`.
+5. Given `h` is registered, when `startAuction(h)` is called, then it reverts `NameAlreadyRegistered`.
 6. Given `startAuction(0x0)`, then it reverts `ZeroHash`.
 7. Given an auction for `h` that is Closed and not finalised, when `startAuction(h)` is called, then the old auction is finalised (forfeits accrued, `AuctionClosed` emitted) and a new auction id is created in the same transaction.
 
@@ -284,6 +287,11 @@ Defaults: C = R = S = 180 s, D = minBid = 0.005 ETH, and `h = keccak256("alice")
 56. Given Send ETH to an unregistered domain, the review step is blocked with "not registered".
 57. Given demo mode, the banner is always visible and no transaction can be sent.
 58. Given an RPC failure, the "Network unavailable" banner shows and actions are disabled.
+59. Given a fresh CoinGecko rate, when an amount is typed into the Reveal bid or Send ETH amount field, an SGD estimate with the rate's time is shown (as on the Commit bid field).
+60. Given a CoinGecko failure or a rate older than 10 minutes, the Commit bid, Reveal bid and Send ETH amount fields all show "SGD estimate unavailable".
+61. Given Search by address for an address whose primary is `alice`, the result shows `alice.ntu` as its primary name.
+62. Given Search by address for an address with no primary, the result shows "This address has no primary .ntu domain."
+63. Given Search by address with a malformed or bad-checksum address, a validation error is shown and no lookup is made.
 
 ## 9. Out of scope (v1)
 
@@ -296,6 +304,8 @@ Defaults: C = R = S = 180 s, D = minBid = 0.005 ETH, and `h = keccak256("alice")
 - Salt storage, export, or auto-fill
 - On-chain or attached messages in Send ETH
 - Search suggestions
+- SGD estimates on read-only amounts (deposit, amount due, final price) and in History
+- Showing reverse-resolved names outside Search (header, owner and winner fields)
 - Etherscan-based history and listing direct sends in history
 - A backend
 - Public hosting
@@ -346,3 +356,4 @@ None.
 - **R11:** no cap with rank-by-scan, no reserved names, local hosting.
 - **R12:** start step plus `hash(domain, bid, salt)` without the bidder.
 - **R13:** start takes a hash, copy guard, wrong domain refundable, empty auction closes at commitDeadline.
+- **R14:** SGD estimate on every ETH input via one shared 60 s CoinGecko rate; Search by address (explicit toggle, strict checksum validation, primary name or "no primary"). UI text says "domain", never "name" (product name: NTU Domains).

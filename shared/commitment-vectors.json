@@ -1,0 +1,33 @@
+{
+  "description": "Shared test vectors: commitment = keccak256(abi.encode(string domain, uint256 bidWei, bytes32 salt)); nameHash = keccak256(utf8 bytes of domain). Used by contract and frontend tests.",
+  "vectors": [
+    {
+      "domain": "alice",
+      "bidWei": "10000000000000000",
+      "salt": "0x1111111111111111111111111111111111111111111111111111111111111111",
+      "nameHash": "0x9c0257114eb9399a2985f8e75dad7600c5d89fe3824ffa99ec1c3eb8bf3b0501",
+      "commitment": "0x87602aac3f783f71bfc68ec180774e63794dfbe642eaa29db0bc4c33c70238af"
+    },
+    {
+      "domain": "bob",
+      "bidWei": "5000000000000000",
+      "salt": "0xabababababababababababababababababababababababababababababababab",
+      "nameHash": "0x38e47a7b719dce63662aeaf43440326f551b8a7ee198cee35cb5d517f2d296a2",
+      "commitment": "0x97d593cc764c1f2b87ced4344307c539bdf588c8cbe63d38d40583c9230b8a8b"
+    },
+    {
+      "domain": "ntu2026",
+      "bidWei": "1500000000000000000",
+      "salt": "0x4f8b3c9a1d2e5f60718293a4b5c6d7e84f8b3c9a1d2e5f60718293a4b5c6d7e8",
+      "nameHash": "0x8a7e1a9c7e7d855230f7f591133ad8fbeaa3fe6a80edae0994477726db742c7c",
+      "commitment": "0x2f8908622027da0bae55673fb45eec370dbb7f7ae1b8f804e829c0fb0e17caf2"
+    },
+    {
+      "domain": "abcdefghijklmnopqrstuvwxyz012345",
+      "bidWei": "123456789000000000",
+      "salt": "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "nameHash": "0x7a6f737e43d8df6b957106ab38e3ee7356f9640efbd029c659cfb25aa1f033a1",
+      "commitment": "0x6428d66bf279d3cac36de2fe9ed142c2cd8c7dacbdda9642ad4641cc316c4db0"
+    }
+  ]
+}
