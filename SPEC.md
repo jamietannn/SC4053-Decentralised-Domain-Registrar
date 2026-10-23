@@ -116,7 +116,7 @@ Phase is derived in this order:
 ### State-changing functions
 | Function | Access | Preconditions (revert error) | Effects / returns | Events |
 |---|---|---|---|---|
-| `startAuction(bytes32 nameHash) → uint256 auctionId` | anyone | `nameHash≠0` (`ZeroHash`); not registered (`NameRegistered`); no live auction (`AuctionActive`) | auto-finalise a stale Closed auction; ids start at 1; `commitDeadline = now+C`, `revealDeadline = commitDeadline+R` | `AuctionStarted(id, nameHash, starter, commitDeadline, revealDeadline)` |
+| `startAuction(bytes32 nameHash) → uint256 auctionId` | anyone | `nameHash≠0` (`ZeroHash`); not registered (`NameAlreadyRegistered`); no live auction (`AuctionActive`) | auto-finalise a stale Closed auction; ids start at 1; `commitDeadline = now+C`, `revealDeadline = commitDeadline+R` | `AuctionStarted(id, nameHash, starter, commitDeadline, revealDeadline)` |
 | `commitBid(uint256 auctionId, bytes32 commitment)` payable | anyone | phase Commit (`NotInCommitPhase`); `msg.value==deposit` (`WrongDeposit`); `commitment≠0` (`ZeroCommitment`); no prior commit by sender (`AlreadyCommitted`); commitment unused (`CommitmentUsed`) | store bid with `commitIndex`; mark the commitment used | `BidCommitted(id, bidder, commitment, commitIndex)` |
 | `revealBid(uint256 auctionId, string domain, uint256 bid, bytes32 salt)` | committed bidder | phase Reveal (`NotInRevealPhase`); has commit (`NoCommitment`); not revealed (`AlreadyRevealed`); hash matches (`CommitmentMismatch`) | record bid, eligibility, reason; eligible → append to the eligible list and store the domain string | `BidRevealed(id, bidder, domain, bid, eligible, reason)` |
 | `payWinningBid(uint256 auctionId)` payable | current offeree | phase Settlement (`NotInSettlement`); caller eligible (`NotEligible`); caller rank == current window index (`NotYourTurn`); `msg.value == bid−deposit` (`WrongPayment`) | settle, register, resolve, append to list, auto-primary, accrue treasury, finalised | `NameRegistered(nameHash, domain, owner, id, price)`, `AuctionSettled(id, winner, price, rank)`, optional `PrimaryNameSet(owner, domain)` |
@@ -209,7 +209,7 @@ Defaults: C = R = S = 180 s, D = minBid = 0.005 ETH, and `h = keccak256("alice")
 
 3. Given `h` is unregistered with no auction, when anyone calls `startAuction(h)`, then auction 1 has `commitDeadline = t+180` and `revealDeadline = t+360`, `AuctionStarted` is emitted, and the phase is Commit.
 4. Given a live auction for `h` (Commit, Reveal, or Settlement), when `startAuction(h)` is called, then it reverts `AuctionActive`.
-5. Given `h` is registered, when `startAuction(h)` is called, then it reverts `NameRegistered`.
+5. Given `h` is registered, when `startAuction(h)` is called, then it reverts `NameAlreadyRegistered`.
 6. Given `startAuction(0x0)`, then it reverts `ZeroHash`.
 7. Given an auction for `h` that is Closed and not finalised, when `startAuction(h)` is called, then the old auction is finalised (forfeits accrued, `AuctionClosed` emitted) and a new auction id is created in the same transaction.
 
