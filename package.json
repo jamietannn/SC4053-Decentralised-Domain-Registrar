@@ -1,0 +1,23 @@
+{
+  "name": "ntu-names",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "LOCAL_INTERVAL_MINING=1 hardhat node",
+    "deploy:local": "hardhat run scripts/deploy.ts --network localhost && npm run export-abi",
+    "deploy:sepolia": "hardhat run scripts/deploy.ts --network sepolia && npm run export-abi",
+    "export-abi": "hardhat run scripts/export-abi.ts",
+    "frontend": "npm --prefix frontend run dev",
+    "test:all": "hardhat test && npm --prefix frontend test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "^5.6.1",
+    "@types/node": "^20.19.43",
+    "hardhat": "^2.29.1",
+    "ts-node": "^10.9.2",
+    "typescript": "5.6"
+  }
+}
