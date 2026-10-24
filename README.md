@@ -75,6 +75,73 @@ These choices affect both contract behavior and frontend states; they should be 
 - [`blockchain.pdf`](./blockchain.pdf) — original specification source.
 - [`UI Template.pdf`](./UI%20Template.pdf) — visual and navigation reference for the interface.
 
+## Running it
+
+### Prerequisites
+- Node 20+ and npm.
+- Google Chrome (or Brave/Edge/Firefox) with the [MetaMask](https://metamask.io) extension installed. MetaMask is a browser extension; the app cannot find a wallet in Safari, private windows, or embedded preview panes.
+
+### 1. Install and test
+```bash
+npm install && npm --prefix frontend install
+npm run test:all        # Hardhat contract tests + frontend unit tests
+```
+
+### 2. Start a local chain, deploy, and run the app
+Use three terminals in the project root:
+```bash
+npm run node                                # 1. local chain on :8545 (chain id 31337), mines a block every second; leave running
+PHASE_SECONDS=30 npm run deploy:local       # 2. deploy; writes frontend/.env.local and exports the ABI
+npm run frontend                            # 3. Vite dev server; open the URL it prints
+```
+`PHASE_SECONDS` sets the commit, reveal and settlement phase lengths. Omit it for the spec default of 180 s (3 minutes). Use at least 120 s when you are clicking through MetaMask by hand; 30 s is only enough for scripted runs.
+
+`npm run node` mines a block every second so the chain clock follows real time. A plain `npx hardhat node` only mines on transactions, so its clock stands still and the app's phase display goes stale (commits then fail with "commit phase is not open"). If you restart `npm run node`, the chain resets: rerun step 2.
+
+### 3. Set up MetaMask for the local chain
+1. **Add the network.** Open the network picker, choose **Manage networks**, then **Add a custom network** (or **Settings → Networks → Add a custom network**) and enter:
+   - Network name: `Hardhat Local`
+   - RPC URL: `http://127.0.0.1:8545`
+   - Chain ID: `31337`
+   - Currency symbol: `ETH`
+2. **Import a funded test account.** `npm run node` prints 20 accounts with private keys. In MetaMask choose **Add account or hardware wallet → Private key** and paste one (use accounts #2 and up; #0 deploys and #1 is the treasury). Each has 10,000 test ETH. **These keys are public. Never use them on a real network.**
+3. Switch MetaMask to `Hardhat Local`, open the app, and click **Connect MetaMask**.
+
+If MetaMask reports nonce errors after restarting the node, use **Settings → Advanced → Clear activity tab data**.
+
+### 4. Try an end-to-end flow
+1. **Search** `alice` and click **Start auction**.
+2. **Commit** a bid of at least 0.01 ETH: generate a salt, **copy the domain, bid and salt** (the app does not store them), tick the checkbox, and commit. 0.005 ETH is sent as the deposit.
+3. Wait for the **reveal** phase, then enter the domain, exact bid and salt and reveal.
+4. After the reveal phase the page shows **Congratulations, you won!**: click **Pay winning bid** (bid minus deposit).
+5. Check **My domains** (`alice.ntu` is primary), **Send ETH** to `alice.ntu`, and **Transactions**.
+
+Other cases to try, ideally with a second imported account (full list with steps and expected results in [`docs/MANUAL_TEST_PATHS.md`](./docs/MANUAL_TEST_PATHS.md)):
+- A losing bidder opens the auction and clicks **Withdraw deposit** (0.005 ETH returned).
+- Commit but never reveal: the deposit is forfeited.
+- The winner does not pay within the settlement window: the next-highest bidder is offered the name.
+- Nobody reveals: the auction closes and **Finalise auction** appears.
+- Commit below the 0.005 ETH minimum: the reveal is ineligible and the deposit is refundable straight away.
+- Switch MetaMask to another network: transaction buttons disable and a switch banner appears.
+
+### Demo mode (no wallet or chain)
+Open the app with `?demo=1` (for example `http://localhost:5173/?demo=1`). It shows fixed sample data behind a permanent banner and disables every transaction button.
+
+### Sepolia
+Set `SEPOLIA_RPC_URL` and `DEPLOYER_PRIVATE_KEY`, run `npm run deploy:sepolia`, and restart the frontend. `frontend/.env.local` then points at Sepolia (chain id 11155111). Do not commit private keys.
+
+### Troubleshooting
+| Symptom | Fix |
+|---|---|
+| "MetaMask was not found" | Install the extension and open the app in that same browser profile, not in a private window or preview pane |
+| "Commit phase is not open for this auction" although the app shows Commit phase | The commit window passed in real time. Use `npm run node` (not `npx hardhat node`), redeploy with `PHASE_SECONDS=120`, and start a new auction |
+| Wrong-network banner | Switch MetaMask to `Hardhat Local`, or click the banner's switch button |
+| "Network unavailable" banner | `npm run node` is not running, or `VITE_RPC_URL` in `frontend/.env.local` is wrong |
+| App shows no contract / actions fail after a node restart | Rerun `npm run deploy:local` (the address changes) |
+| Port 5173 already in use | Vite picks the next free port; use the URL it prints |
+
+Layout: `contracts/` (Solidity), `test/` (Hardhat tests), `scripts/` (deploy, ABI export), `frontend/` (React + Vite + ethers v6), `docs/` (audit report sections and test/Slither evidence).
+
 ## Status
 
-This README describes the project goals and initial requirements. It does not claim that the contracts or interface are deployed, complete, or security-audited. UI mockup content and sample data are illustrative unless verified against the deployed testnet contract.
+The contract and the web interface are implemented and tested locally (see `docs/`). Nothing is deployed to a public testnet yet, the wallet flows have not been exercised in a real browser with MetaMask, and the contract has not been independently audited. UI mockup content and sample data are illustrative unless verified against the deployed testnet contract.

@@ -1,0 +1,67 @@
+  NtuNames
+    deployment
+      ✔ 1. reverts when minBid < deposit (393ms)
+      ✔ 2. reverts on zero duration/deposit/treasury
+    start auction
+      ✔ 3. creates auction 1 in commit phase
+      ✔ 4. reverts AuctionActive in commit/reveal/settlement
+      ✔ 5. reverts NameTaken when registered
+      ✔ 6. reverts ZeroHash
+      ✔ 7. auto-finalises a closed auction on restart
+    commit
+      ✔ 8. stores bid with next commitIndex
+      ✔ 9. reverts WrongDeposit
+      ✔ 10. reverts at commitDeadline
+      ✔ 11. reverts AlreadyCommitted
+      ✔ 12. reverts CommitmentUsed across bidders and auctions
+      ✔ 13. reverts ZeroCommitment
+      ✔ 14. front-runner copying a commitment cannot win; victim recommits
+      ✔ 15. accepts 100 commits (no cap) (872ms)
+      ✔ 16. commit tx calldata/events contain no plaintext domain or bid
+    reveal
+      ✔ 17. accepts reveal exactly at commitDeadline
+      ✔ 18. rejects reveal at revealDeadline
+      ✔ 19. mismatch reverts, later correct reveal succeeds
+      ✔ 20. NoCommitment
+      ✔ 21. AlreadyRevealed
+      ✔ 22. below minimum is ineligible and refundable at once
+      ✔ 23. invalid domain formats are ineligible InvalidDomain
+      ✔ 24. wrong domain is ineligible WrongDomain and refundable
+      ✔ 25/26. exact minimum, 3-char and 32-char domains are eligible
+    ranking and settlement
+      ✔ 27. phase Settlement and offeree is highest
+      ✔ 28. tie broken by earliest commit
+      ✔ 29. NotYourTurn for rank 1 during offer 0
+      ✔ 30. winner pays exact amount; registers, resolves, primary
+      ✔ 31. wrong payment reverts
+      ✔ 32. bid == minBid allows value 0
+      ✔ 33. cascade: A defaults, B pays; A forfeits, C refunds
+      ✔ 34. nobody pays: Closed at rd+E*S, finalise forfeits, restart allowed
+      ✔ 35. settled auction cannot be paid again
+      ✔ 36. NotEligible for ineligible or non-revealing caller
+    closure and edge cases
+      ✔ 37. zero commits: Closed at commitDeadline, restart immediate
+      ✔ 38. no eligible reveals: Closed at revealDeadline, non-revealers forfeit
+      ✔ 39. finalise reverts when twice / when not closed
+    deposits and treasury
+      ✔ 40. non-revealer can never withdraw; deposit is in treasury
+      ✔ 41. refundable bidder withdraws exactly D once
+      ✔ 42. winner and defaulted bidder cannot withdraw
+      ✔ 43. re-entrant withdraw is blocked, one D paid
+      ✔ 44. treasury increases by bid + k*D + N*D
+      ✔ 45. anyone triggers withdrawTreasury; second call reverts
+      ✔ 47. plain ETH send reverts
+    names, primary, resolution
+      ✔ 48. primary stays on first name until changed
+      ✔ 49. setPrimaryName by non-owner reverts
+      ✔ 50. empty results for unknown names/addresses
+  gas scaling of payWinningBid
+      payWinningBid gas @ n=10: 279180
+    ✔ n=10 eligible bids (133ms)
+      payWinningBid gas @ n=50: 473980
+    ✔ n=50 eligible bids (594ms)
+      payWinningBid gas @ n=200: 1204480
+    ✔ n=200 eligible bids (2382ms)
+      payWinningBid gas @ n=600: 3152480
+    ✔ n=600 eligible bids (7350ms)
+  52 passing (12s)

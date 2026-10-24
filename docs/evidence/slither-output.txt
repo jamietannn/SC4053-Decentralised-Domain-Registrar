@@ -1,0 +1,31 @@
+'solc --version' running
+'solc @openzeppelin=node_modules/@openzeppelin contracts/NtuNames.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --allow-paths .,/Users/weipingtee/Documents/School/SC4053-Decentralised-Domain-Registrar/contracts' running
+Compilation warnings/errors on contracts/NtuNames.sol:
+
+INFO:Detectors:
+Detector: incorrect-equality
+NtuNames.currentOfferee(uint256) (contracts/NtuNames.sol#314-322) uses a dangerous strict equality:
+	- _rank(id,list[i]) == k (contracts/NtuNames.sol#319)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+INFO:Detectors:
+Detector: timestamp
+NtuNames.payWinningBid(uint256) (contracts/NtuNames.sol#196-226) uses timestamp for comparisons
+	Dangerous comparisons:
+	- rank != (block.timestamp - a.revealDeadline) / settlementDuration (contracts/NtuNames.sol#203)
+NtuNames.currentOfferee(uint256) (contracts/NtuNames.sol#314-322) uses timestamp for comparisons
+	Dangerous comparisons:
+	- _rank(id,list[i]) == k (contracts/NtuNames.sol#319)
+NtuNames._phase(uint256) (contracts/NtuNames.sol#342-352) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp < a.commitDeadline (contracts/NtuNames.sol#346)
+	- block.timestamp < a.revealDeadline (contracts/NtuNames.sol#348)
+	- block.timestamp < uint256(a.revealDeadline) + uint256(a.eligibleCount) * settlementDuration (contracts/NtuNames.sol#350)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+INFO:Detectors:
+Detector: low-level-calls
+Low level call in NtuNames.withdrawDeposit(uint256) (contracts/NtuNames.sol#244-250):
+	- (ok,None) = msg.sender.call{value: deposit}() (contracts/NtuNames.sol#248)
+Low level call in NtuNames.withdrawTreasury() (contracts/NtuNames.sol#252-259):
+	- (ok,None) = treasury.call{value: amount}() (contracts/NtuNames.sol#257)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+INFO:Slither:contracts/NtuNames.sol analyzed (3 contracts with 100 detectors), 6 result(s) found
